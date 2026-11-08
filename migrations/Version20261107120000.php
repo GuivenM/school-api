@@ -25,6 +25,7 @@ final class Version20261107120000 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $table = $schema->createTable('tenants');
+        $table->addOption('engine', 'InnoDB');
         $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
         $table->addColumn('slug', Types::STRING, ['length' => 28]);
         $table->addColumn('name', Types::STRING, ['length' => 150]);

@@ -3,97 +3,29 @@ PHPUnit 13.4.6 by Sebastian Bergmann and contributors.
 Runtime:       PHP 8.5.0
 Configuration: D:\Documents\Workspace\programming\web\school-api\phpunit.dist.xml
 
-[31;1mE[0m[31;1mE[0m[31;1mE[0m[31;1mE[0m[31;1mE[0m[31;1mE[0m[31;1mE[0m.....                                                      12 / 12 (100%)
+...........[41;37mF[0m......                                                18 / 18 (100%)
 
-Time: 00:04.333, Memory: 54.00 MB
+Time: 00:30.752, Memory: 68.00 MB
 
-There were 7 errors:
+There was 1 failure:
 
-1) App\Tests\Tenancy\AuthenticationTest::testLoginThenMe
-Doctrine\DBAL\Exception\TableNotFoundException: An exception occurred while executing a query: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'school_api_test.super_admins' doesn't exist
+1) App\Tests\Tenancy\ReferentielApiTest::testSuppressionBloqueeQuandElementUtilise
+Failed asserting that the Response status code is 409.
+HTTP/1.1 204 No Content
+Accept-Patch:           application/merge-patch+json
+Allow:                  OPTIONS, HEAD, GET, PATCH, DELETE
+Cache-Control:          no-cache, private
+Date:                   Sun, 08 Nov 2026 02:40:31 GMT
+Link:                   <http://localhost/api/docs.jsonld>; rel="http://www.w3.org/ns/hydra/core#apiDocumentation"
+Vary:                   Accept
+X-Content-Type-Options: nosniff
+X-Frame-Options:        deny
+X-Robots-Tag:           noindex
 
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\API\MySQL\ExceptionConverter.php:51
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Connection.php:1453
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Connection.php:1389
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Connection.php:807
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\orm\src\Persisters\Entity\BasicEntityPersister.php:740
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\orm\src\EntityRepository.php:126
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:135
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:30
+D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\BrowserKitAssertionsTrait.php:198
+D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\BrowserKitAssertionsTrait.php:48
+D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\ReferentielApiTest.php:127
 D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
 
-Caused by
-Doctrine\DBAL\Driver\PDO\Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'school_api_test.super_admins' doesn't exist
-
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\PDO\Exception.php:24
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\PDO\Statement.php:57
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\Middleware\AbstractStatementMiddleware.php:24
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Logging\Statement.php:46
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\Middleware\AbstractStatementMiddleware.php:24
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\doctrine-bridge\Middleware\Debug\Statement.php:58
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Connection.php:800
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\orm\src\Persisters\Entity\BasicEntityPersister.php:740
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\orm\src\EntityRepository.php:126
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:135
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:30
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-Caused by
-PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'school_api_test.super_admins' doesn't exist
-
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\PDO\Statement.php:55
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\Middleware\AbstractStatementMiddleware.php:24
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Logging\Statement.php:46
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Driver\Middleware\AbstractStatementMiddleware.php:24
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\doctrine-bridge\Middleware\Debug\Statement.php:58
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\dbal\src\Connection.php:800
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\orm\src\Persisters\Entity\BasicEntityPersister.php:740
-D:\Documents\Workspace\programming\web\school-api\vendor\doctrine\orm\src\EntityRepository.php:126
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:135
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:30
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-2) App\Tests\Tenancy\AuthenticationTest::testWrongPasswordIsRejected
-LogicException: Booting the kernel before calling "Symfony\Bundle\FrameworkBundle\Test\WebTestCase::createClient()" is not supported, the kernel should only be booted once.
-
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\WebTestCase.php:48
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:27
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-3) App\Tests\Tenancy\AuthenticationTest::testLoginRequiresTenantHeader
-LogicException: Booting the kernel before calling "Symfony\Bundle\FrameworkBundle\Test\WebTestCase::createClient()" is not supported, the kernel should only be booted once.
-
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\WebTestCase.php:48
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:27
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-4) App\Tests\Tenancy\AuthenticationTest::testUserOfAnotherTenantCannotLogin
-LogicException: Booting the kernel before calling "Symfony\Bundle\FrameworkBundle\Test\WebTestCase::createClient()" is not supported, the kernel should only be booted once.
-
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\WebTestCase.php:48
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:27
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-5) App\Tests\Tenancy\AuthenticationTest::testMeWithoutTokenIsRejected
-LogicException: Booting the kernel before calling "Symfony\Bundle\FrameworkBundle\Test\WebTestCase::createClient()" is not supported, the kernel should only be booted once.
-
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\WebTestCase.php:48
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:27
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-6) App\Tests\Tenancy\AuthenticationTest::testTenantComesFromTokenNotFromHeader
-LogicException: Booting the kernel before calling "Symfony\Bundle\FrameworkBundle\Test\WebTestCase::createClient()" is not supported, the kernel should only be booted once.
-
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\WebTestCase.php:48
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:27
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-7) App\Tests\Tenancy\AuthenticationTest::testAdminTokenAndTenantTokenAreNotInterchangeable
-LogicException: Booting the kernel before calling "Symfony\Bundle\FrameworkBundle\Test\WebTestCase::createClient()" is not supported, the kernel should only be booted once.
-
-D:\Documents\Workspace\programming\web\school-api\vendor\symfony\framework-bundle\Test\WebTestCase.php:48
-D:\Documents\Workspace\programming\web\school-api\tests\Tenancy\AuthenticationTest.php:27
-D:\Documents\Workspace\programming\web\school-api\vendor\phpunit\phpunit\phpunit:104
-
-[37;41mERRORS![0m
-[37;41mTests: 12[0m[37;41m, Assertions: 26[0m[37;41m, Errors: 7[0m[37;41m.[0m
+[37;41mFAILURES![0m
+[37;41mTests: 18[0m[37;41m, Assertions: 150[0m[37;41m, Failures: 1[0m[37;41m.[0m

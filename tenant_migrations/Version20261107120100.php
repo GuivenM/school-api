@@ -25,6 +25,7 @@ final class Version20261107120100 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $table = $schema->createTable('parametres');
+        $table->addOption('engine', 'InnoDB');
         $table->addColumn('cle', Types::STRING, ['length' => 100]);
         $table->addColumn('valeur', Types::TEXT, ['notnull' => false]);
         $table->setPrimaryKey(['cle']);

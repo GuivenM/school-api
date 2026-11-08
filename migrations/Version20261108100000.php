@@ -24,6 +24,7 @@ final class Version20261108100000 extends AbstractMigration
     public function up(Schema $schema): void
     {
         $table = $schema->createTable('super_admins');
+        $table->addOption('engine', 'InnoDB');
         $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
         $table->addColumn('email', Types::STRING, ['length' => 180]);
         $table->addColumn('password', Types::STRING, ['length' => 255]);

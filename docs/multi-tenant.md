@@ -53,3 +53,22 @@ php bin/console tenant:user:create ecole_demo directeur@ecole.test directeur
 - Super-admin : `POST /admin/login` `{"email","password"}` → `{"token"}` ; puis `GET /admin/tenants`.
 - École : `POST /api/login` avec l'en-tête `X-Tenant: ecole_demo` → `{"token"}` ; puis `Authorization: Bearer <token>` (`GET /api/me`).
 - Rôles d'école : directeur, secretariat, comptable, enseignant, tuteur, eleve (le directeur hérite de secrétariat, comptable et enseignant).
+
+## Référentiel (API)
+Toutes les routes sont sous `/api`, protégées par le JWT d'école. **Lecture** : tout utilisateur connecté ;
+**écriture** : secrétariat et directeur.
+
+| Ressource | URL |
+|---|---|
+| Années scolaires | `/api/annees_scolaires` (filtre `?statut=active`) |
+| Trimestres | `/api/periodes` (filtre `?annee=/api/annees_scolaires/1`) |
+| Niveaux | `/api/niveaux` |
+| Matières | `/api/matieres` |
+| Classes | `/api/classes` (filtres `?annee=`, `?niveau=`) |
+| Matières d'une classe (coefficients) | `/api/classe_matieres` (filtres `?classe=`, `?matiere=`) |
+
+- Les relations s'écrivent avec l'IRI : `{"annee": "/api/annees_scolaires/1"}`.
+- Création/lecture : `Content-Type: application/ld+json` ; modification (PATCH) : `application/merge-patch+json`.
+- Une seule année peut être `active`. `cloturee` / `archivee` sont réservés à la clôture d'année (lot 6).
+- Supprimer un élément encore utilisé répond `409`.
+- Pour exposer d'autres dossiers d'entités à API Platform : `config/packages/api_platform.yaml` > `mapping.paths`.
