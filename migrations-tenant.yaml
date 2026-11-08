@@ -1,0 +1,6 @@
+# Configuration Doctrine Migrations des bases d'école (utilisée par la CLI avec --em=tenant).
+# tenant:create / tenant:migrate appliquent le même dossier via App\Tenancy\TenantMigrator.
+migrations_paths:
+    'TenantMigrations': 'tenant_migrations'
+table_storage:
+    table_name: doctrine_migration_versions

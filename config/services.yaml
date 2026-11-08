@@ -7,6 +7,9 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Nom de la base d'une école = préfixe + slug. Ne plus le changer une fois des écoles créées.
+    app.tenant.db_prefix: 'school_'
+    app.tenant.migrations_dir: '%kernel.project_dir%/tenant_migrations'
 
 services:
     # default configuration for services in *this* file
@@ -21,3 +24,32 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # --- Multi-tenant ---
+    App\Tenancy\TenantCipher:
+        arguments:
+            $key: '%env(TENANT_ENCRYPTION_KEY)%'
+
+    App\Tenancy\Doctrine\TenantDriverMiddleware:
+        arguments:
+            $allowTemplateFallback: '%env(bool:TENANT_ALLOW_TEMPLATE_FALLBACK)%'
+        tags:
+            - { name: doctrine.middleware, connection: tenant }
+
+    App\Tenancy\TenantMigrator:
+        arguments:
+            $tenantEntityManager: '@doctrine.orm.tenant_entity_manager'
+            $migrationsDir: '%app.tenant.migrations_dir%'
+
+    App\Tenancy\TenantProvisioner:
+        arguments:
+            $landlordConnection: '@doctrine.dbal.default_connection'
+            $landlordEntityManager: '@doctrine.orm.default_entity_manager'
+            $tenantEntityManager: '@doctrine.orm.tenant_entity_manager'
+            $dbPrefix: '%app.tenant.db_prefix%'
+            $userHost: '%env(TENANT_DB_USER_HOST)%'
+
+when@test:
+    parameters:
+        # Bases d'école de test séparées de celles de dev
+        app.tenant.db_prefix: 'school_test_'
