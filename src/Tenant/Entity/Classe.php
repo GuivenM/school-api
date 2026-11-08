@@ -18,7 +18,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
-/** Une classe (ex. « 6e A ») pour une année scolaire donnée. Le titulaire sera ajouté au lot 3 (enseignants). */
+/** Une classe (ex. « 6e A ») pour une année scolaire donnée, avec son enseignant titulaire. */
 #[ORM\Entity]
 #[ORM\Table(name: 'classes')]
 #[ORM\UniqueConstraint(name: 'uniq_classes_annee_libelle', columns: ['annee_id', 'libelle'])]
@@ -36,7 +36,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     order: ['libelle' => 'ASC'],
     exceptionToStatus: DbExceptionMap::TO_STATUS,
 )]
-#[ApiFilter(SearchFilter::class, properties: ['annee' => 'exact', 'niveau' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: ['annee' => 'exact', 'niveau' => 'exact', 'titulaire' => 'exact'])]
 class Classe
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -60,6 +60,10 @@ class Classe
     #[ORM\Column(nullable: true)]
     #[Assert\Positive]
     private ?int $effectifMax = null;
+
+    #[ORM\ManyToOne(targetEntity: Enseignant::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Enseignant $titulaire = null;
 
     public function getId(): ?int
     {
@@ -104,5 +108,15 @@ class Classe
     public function setEffectifMax(?int $effectifMax): void
     {
         $this->effectifMax = $effectifMax;
+    }
+
+    public function getTitulaire(): ?Enseignant
+    {
+        return $this->titulaire;
+    }
+
+    public function setTitulaire(?Enseignant $titulaire): void
+    {
+        $this->titulaire = $titulaire;
     }
 }

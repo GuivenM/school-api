@@ -21,7 +21,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Matière enseignée dans une classe, avec son coefficient (par classe, donc par année : modifier un coefficient
- * en 2027 ne change pas les bulletins de 2026). L'enseignant sera ajouté au lot 3.
+ * en 2027 ne change pas les bulletins de 2026), avec l'enseignant qui la dispense.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'classe_matieres')]
@@ -39,7 +39,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     security: Acces::LECTURE,
     exceptionToStatus: DbExceptionMap::TO_STATUS,
 )]
-#[ApiFilter(SearchFilter::class, properties: ['classe' => 'exact', 'matiere' => 'exact'])]
+#[ApiFilter(SearchFilter::class, properties: ['classe' => 'exact', 'matiere' => 'exact', 'enseignant' => 'exact'])]
 class ClasseMatiere
 {
     #[ORM\Id, ORM\GeneratedValue, ORM\Column]
@@ -59,6 +59,10 @@ class ClasseMatiere
     #[Assert\Positive(message: 'Le coefficient doit être supérieur à 0.')]
     #[Assert\LessThanOrEqual(value: 20, message: 'Le coefficient ne peut pas dépasser 20.')]
     private float $coefficient = 1.0;
+
+    #[ORM\ManyToOne(targetEntity: Enseignant::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Enseignant $enseignant = null;
 
     public function getId(): ?int
     {
@@ -93,5 +97,15 @@ class ClasseMatiere
     public function setCoefficient(float $coefficient): void
     {
         $this->coefficient = $coefficient;
+    }
+
+    public function getEnseignant(): ?Enseignant
+    {
+        return $this->enseignant;
+    }
+
+    public function setEnseignant(?Enseignant $enseignant): void
+    {
+        $this->enseignant = $enseignant;
     }
 }

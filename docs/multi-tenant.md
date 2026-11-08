@@ -72,3 +72,19 @@ Toutes les routes sont sous `/api`, protégées par le JWT d'école. **Lecture**
 - Une seule année peut être `active`. `cloturee` / `archivee` sont réservés à la clôture d'année (lot 6).
 - Supprimer un élément encore utilisé répond `409`.
 - Pour exposer d'autres dossiers d'entités à API Platform : `config/packages/api_platform.yaml` > `mapping.paths`.
+
+## Personnes (API)
+Données personnelles (élèves mineurs, tuteurs, enseignants) : **lecture réservée au personnel** (secrétariat, comptable,
+enseignant, directeur) ; les comptes `tuteur` et `eleve` reçoivent `403`. **Écriture** : secrétariat et directeur.
+
+| Ressource | URL |
+|---|---|
+| Élèves | `/api/eleves` (filtres `?nom=`, `?prenoms=` partiels, `?matricule=`, `?statut=`) |
+| Tuteurs | `/api/tuteurs` (filtres `?nom=`, `?prenoms=`, `?telephone=`) |
+| Liens élève/tuteur | `/api/eleve_tuteurs` (filtres `?eleve=`, `?tuteur=`) |
+| Enseignants | `/api/enseignants` (filtres `?nom=`, `?actif=`) |
+
+- Un élève est unique par (nom, prénoms, date de naissance) ; le matricule, s'il est fourni, est unique (génération automatique au lot 4).
+- Un élève a au plus un tuteur `principal`. Supprimer un élève ou un tuteur supprime ses liens.
+- `Classe.titulaire` et `ClasseMatiere.enseignant` référencent un enseignant (IRI) ; supprimer l'enseignant les vide.
+- Les comptes tuteur/élève ne verront que leurs propres données via des routes dédiées (lots suivants).
