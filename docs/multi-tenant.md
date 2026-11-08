@@ -5,7 +5,9 @@
 - **Base d'école** = connexion/EM `tenant` : tables métier (src/Tenant/Entity, tenant_migrations/).
 - `TenantDriverMiddleware` remplace dbname/user/password à la connexion selon l'école active.
   Sans école active : connexion refusée (`NoActiveTenantException`).
-- L'école de la requête vient (provisoirement, lot 1A) de l'en-tête `X-Tenant`.
+- L'école d'une requête `/api/*` vient **uniquement du JWT** (claims `scope=tenant` + `tenant=<slug>`) ;
+  l'en-tête `X-Tenant` n'est lu que pour `/api/login` (et pour `/_tenant/*` en dev/test).
+- Les tokens des super-admins (`scope=landlord`) ne valent que sur `/admin/*`, et inversement.
 
 ## Droits MySQL requis pour l'utilisateur de DATABASE_URL
 ```sql
@@ -41,3 +43,13 @@ php bin/console --env=test doctrine:database:create --if-not-exists
 php bin/console --env=test doctrine:migrations:migrate -n
 php bin/phpunit tests/Tenancy
 ```
+
+## Authentification (JWT)
+```bash
+php bin/console lexik:jwt:generate-keypair           # une fois (clés dans config/jwt/, ignorées par git)
+php bin/console admin:create admin@exemple.com       # super-admin (mot de passe demandé)
+php bin/console tenant:user:create ecole_demo directeur@ecole.test directeur
+```
+- Super-admin : `POST /admin/login` `{"email","password"}` → `{"token"}` ; puis `GET /admin/tenants`.
+- École : `POST /api/login` avec l'en-tête `X-Tenant: ecole_demo` → `{"token"}` ; puis `Authorization: Bearer <token>` (`GET /api/me`).
+- Rôles d'école : directeur, secretariat, comptable, enseignant, tuteur, eleve (le directeur hérite de secrétariat, comptable et enseignant).

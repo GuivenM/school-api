@@ -6,12 +6,53 @@ security:
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         users_in_memory: { memory: null }
+        # Super-admins de la plateforme (base centrale)
+        landlord_admins:
+            entity: { class: App\Entity\SuperAdmin, property: email }
+        # Utilisateurs d'une école (base de l'école active : voir TenantRequestListener)
+        tenant_users:
+            entity: { class: App\Tenant\Entity\Utilisateur, property: email, manager_name: tenant }
+
+    role_hierarchy:
+        ROLE_DIRECTEUR: [ROLE_SECRETARIAT, ROLE_COMPTABLE, ROLE_ENSEIGNANT]
 
     firewalls:
         dev:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler(/|$)|(_wdt|assets|build)/)
             security: false
+        admin_login:
+            pattern: ^/admin/login$
+            stateless: true
+            provider: landlord_admins
+            json_login:
+                check_path: admin_login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+        admin:
+            pattern: ^/admin
+            stateless: true
+            provider: landlord_admins
+            jwt: ~
+        api_login:
+            pattern: ^/api/login$
+            stateless: true
+            provider: tenant_users
+            user_checker: App\Security\UtilisateurChecker
+            json_login:
+                check_path: api_login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: tenant_users
+            user_checker: App\Security\UtilisateurChecker
+            jwt: ~
         main:
             lazy: true
             provider: users_in_memory
@@ -26,6 +67,10 @@ security:
     access_control:
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/admin/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api, roles: ROLE_USER }
 
 when@test:
     security:

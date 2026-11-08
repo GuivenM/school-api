@@ -18,3 +18,5 @@
 /.phpunit.cache/
 ###< phpunit/phpunit ###
 *.patch
+
+/config/jwt/*.pem
