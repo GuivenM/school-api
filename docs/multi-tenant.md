@@ -114,3 +114,33 @@ enseignant, directeur) ; les comptes `tuteur` et `eleve` reçoivent `403`. **Éc
 - **Effectif maximum** d'une classe : jamais bloquant. Si dépassé, la réponse contient `"avertissements": ["Effectif maximum dépassé : ..."]`.
 - Transfert / abandon : `PATCH` avec `statut` = `transferee` ou `abandonnee` + `dateSortie` (+ `motifSortie`). Le statut de l'élève suit (`transfere` / `sorti`) et redevient `actif` si l'inscription repasse à `en_cours`. `terminee` est réservé à la clôture d'année.
 - Un élève, une classe ou une année qui a des inscriptions ne peut plus être supprimé (`409`).
+
+## Évaluations, notes, moyennes (API)
+Toutes les notes sont **sur 20** (pas de barème variable). Lecture : personnel de l'école ; écriture : secrétariat/directeur partout,
+**un enseignant uniquement sur les matières de classe dont il est l'enseignant** (`ClasseMatiere.enseignant` = sa fiche).
+
+| Ressource | URL |
+|---|---|
+| Évaluations (interrogation, devoir, composition) | `/api/evaluations` (filtres `?classeMatiere=`, `?periode=`, `?type=`) |
+| Notes | `/api/notes` (filtres `?evaluation=`, `?inscription=`, `?statut=`) |
+| Saisie d'une classe entière, tout ou rien | `POST /api/evaluations/{id}/notes` `{"notes": [{"inscription": "<IRI>", "valeur": 14.5}, {"inscription": "<IRI>", "statut": "absent"}]}` |
+| Résultats d'une classe pour un trimestre | `GET /api/periodes/{id}/resultats?classe=<id>` |
+| Bulletin d'un élève (trimestres + annuel) | `GET /api/inscriptions/{id}/bulletin` |
+| Fermer un trimestre (secrétariat) / le rouvrir (directeur) | `POST /api/periodes/{id}/fermer` · `POST /api/periodes/{id}/rouvrir` |
+
+**Statuts d'une note** : `saisie` (a une valeur de 0 à 20, 2 décimales max), `absent`, `dispense`, `non_evalue` (sans valeur, ignorés des
+moyennes : jamais comptés comme zéro). Le type d'évaluation n'influe pas sur le calcul.
+
+**Règles de calcul**
+- moyenne d'une matière (trimestre) = moyenne simple de toutes ses notes `saisie` ;
+- moyenne du trimestre = Σ(moyenne matière × coefficient) / Σ coefficients des matières ayant au moins une note ;
+- moyenne annuelle = moyenne des moyennes de trimestre existantes (un élève arrivé au 2e trimestre est calculé sur 2 trimestres) ;
+- arrondi à 2 décimales à chaque étape (matière, trimestre, année) ; rang = 1 + nombre d'élèves strictement meilleurs (ex æquo = même rang).
+
+**Fermeture d'un trimestre** : fige moyennes et rangs de toutes les classes (le bulletin ne bouge plus si un coefficient ou une note
+change ensuite) et verrouille la saisie (notes, évaluations, trimestre). `rouvrir` supprime les résultats figés ; ils sont recalculés
+à la prochaine fermeture. Trimestre ouvert : résultats calculés en direct (`"source": "calcul"`) ; fermé : lus dans les résultats figés
+(`"source": "snapshot"`).
+
+Limites actuelles : tout le personnel (y compris un enseignant) peut LIRE les notes de toutes les classes ; la restriction de lecture
+aux classes de l'enseignant viendra avec les routes dédiées. Les bulletins PDF et les appréciations arrivent au lot 5B.

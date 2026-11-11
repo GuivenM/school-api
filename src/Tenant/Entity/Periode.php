@@ -31,8 +31,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
         new GetCollection(uriTemplate: '/periodes'),
         new Get(uriTemplate: '/periodes/{id}'),
         new Post(uriTemplate: '/periodes', security: Acces::ECRITURE),
-        new Patch(uriTemplate: '/periodes/{id}', security: Acces::ECRITURE),
-        new Delete(uriTemplate: '/periodes/{id}', security: Acces::ECRITURE),
+        new Patch(uriTemplate: '/periodes/{id}', security: Acces::ECRITURE.' and object.estOuverte()'),
+        new Delete(uriTemplate: '/periodes/{id}', security: Acces::ECRITURE.' and object.estOuverte()'),
     ],
     security: Acces::LECTURE,
     order: ['dateDebut' => 'ASC'],
@@ -68,7 +68,7 @@ class Periode
     #[Assert\NotNull]
     private ?\DateTimeImmutable $dateFin = null;
 
-    /** Passe à « fermee » à la fermeture du trimestre (lot 5), jamais par l'API directement. */
+    /** Passe à « fermee » par la fermeture du trimestre (POST /api/periodes/{id}/fermer), jamais par un PATCH. */
     #[ORM\Column(length: 20, enumType: StatutPeriode::class)]
     private StatutPeriode $statut = StatutPeriode::Ouverte;
 
@@ -130,6 +130,21 @@ class Periode
     public function getStatut(): StatutPeriode
     {
         return $this->statut;
+    }
+
+    public function estOuverte(): bool
+    {
+        return StatutPeriode::Ouverte === $this->statut;
+    }
+
+    public function fermer(): void
+    {
+        $this->statut = StatutPeriode::Fermee;
+    }
+
+    public function rouvrir(): void
+    {
+        $this->statut = StatutPeriode::Ouverte;
     }
 
     #[Assert\Callback]
