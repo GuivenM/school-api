@@ -84,7 +84,33 @@ enseignant, directeur) ; les comptes `tuteur` et `eleve` reçoivent `403`. **Éc
 | Liens élève/tuteur | `/api/eleve_tuteurs` (filtres `?eleve=`, `?tuteur=`) |
 | Enseignants | `/api/enseignants` (filtres `?nom=`, `?actif=`) |
 
-- Un élève est unique par (nom, prénoms, date de naissance) ; le matricule, s'il est fourni, est unique (génération automatique au lot 4).
+- Un élève est unique par (nom, prénoms, date de naissance) ; le matricule, s'il est fourni, est unique (généré automatiquement à la première inscription sinon).
 - Un élève a au plus un tuteur `principal`. Supprimer un élève ou un tuteur supprime ses liens.
 - `Classe.titulaire` et `ClasseMatiere.enseignant` référencent un enseignant (IRI) ; supprimer l'enseignant les vide.
 - Les comptes tuteur/élève ne verront que leurs propres données via des routes dédiées (lots suivants).
+
+## Comptes utilisateurs (API, directeur uniquement)
+| Action | Requête |
+|---|---|
+| Lister / filtrer | `GET /api/utilisateurs` (`?email=`, `?role=`, `?actif=`) |
+| Créer | `POST /api/utilisateurs` `{"email","role","plainPassword","nom","prenoms","enseignant"/"tuteur"/"eleve": "<IRI>"}` |
+| Modifier / désactiver / réinitialiser le mot de passe | `PATCH /api/utilisateurs/{id}` (`actif`, `role`, `plainPassword`...) |
+| Changer son propre mot de passe (tout rôle) | `POST /api/me/password` `{"currentPassword","newPassword"}` |
+
+- Pas de suppression : on désactive (`actif: false`). Le jeton déjà émis cesse de fonctionner à la requête suivante.
+- Un compte `enseignant`, `tuteur` ou `eleve` doit être lié à la personne correspondante (une seule fois) ; un directeur, un
+  secrétaire ou un comptable peut en plus être lié à un enseignant (directeur qui enseigne).
+- L'école garde toujours au moins un directeur actif.
+- Le mot de passe (10 caractères minimum) n'est jamais renvoyé par l'API.
+- Invitation par email et « mot de passe oublié » : lot dédié à venir.
+
+## Inscriptions (API)
+`/api/inscriptions` (filtres `?eleve=`, `?annee=`, `?classe=`, `?statut=`, `?type=`). Lecture : personnel ; écriture : secrétariat et directeur.
+
+- Une inscription = un élève dans une classe pour **une** année (une seule par élève et par année). Elle porte le parcours : notes, bulletins et décision de fin d'année viendront s'y rattacher.
+- `type` : `nouvelle` (première inscription de l'élève), `reinscription` / `redoublement` (il a déjà un parcours), `transfert_entrant` (libre, `provenance` = école d'origine).
+- La classe doit appartenir à l'année ; l'année ne doit pas être clôturée ; l'élève doit être `actif`.
+- Le **matricule** `AAAA-NNNN` (année de début + numéro d'ordre dans l'école) est attribué à l'élève lors de sa première inscription.
+- **Effectif maximum** d'une classe : jamais bloquant. Si dépassé, la réponse contient `"avertissements": ["Effectif maximum dépassé : ..."]`.
+- Transfert / abandon : `PATCH` avec `statut` = `transferee` ou `abandonnee` + `dateSortie` (+ `motifSortie`). Le statut de l'élève suit (`transfere` / `sorti`) et redevient `actif` si l'inscription repasse à `en_cours`. `terminee` est réservé à la clôture d'année.
+- Un élève, une classe ou une année qui a des inscriptions ne peut plus être supprimé (`409`).
