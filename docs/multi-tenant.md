@@ -144,3 +144,33 @@ change ensuite) et verrouille la saisie (notes, évaluations, trimestre). `rouvr
 
 Limites actuelles : tout le personnel (y compris un enseignant) peut LIRE les notes de toutes les classes ; la restriction de lecture
 aux classes de l'enseignant viendra avec les routes dédiées. Les bulletins PDF et les appréciations arrivent au lot 5B.
+
+## Clôture d'année et passage à la suivante
+Même **seuil d'admission pour tous les niveaux** : paramètre `seuil_admission` de l'école (10 par défaut).
+
+| Étape | Requête | Droit |
+|---|---|---|
+| Décision du conseil de classe | `POST /api/inscriptions/{id}/decision` `{"decision": "admis\|redouble\|exclu", "motif": "..."}` ; `DELETE` pour revenir au calcul | secrétariat, directeur |
+| Simulation (ne modifie rien) | `POST /api/annees_scolaires/{id}/cloture/apercu` `{"anneeSuivante": "<IRI>", "affectations": [...]}` | secrétariat, directeur |
+| Clôture (irréversible, tout ou rien) | `POST /api/annees_scolaires/{id}/cloturer` (même corps) | directeur |
+
+**Décision** : calculée d'après la moyenne annuelle (≥ seuil → `admis`, sinon `redouble`). Le conseil de classe peut décider autrement ;
+le **motif est alors obligatoire**. Un élève sans aucune moyenne exige une décision du conseil (avec motif).
+
+**Devenir à la clôture**
+- `admis` → réinscription (`reinscription`) dans le **niveau suivant** de l'année suivante ;
+- `redouble` → `redoublement` dans le même niveau de l'année suivante ;
+- `exclu` → l'élève sort de l'école (statut `sorti`) ;
+- `admis` dans un niveau **sans niveau suivant** (dernier niveau de l'école) → fin de cycle : l'élève sort de l'école (`sorti`).
+  Les examens d'État (BEPC, BAC) ne sont pas gérés par l'application.
+
+**Classes de destination** : créer d'abord, dans l'année suivante (statut `brouillon`), les classes d'accueil. S'il n'y a qu'une classe du bon
+niveau, elle est choisie automatiquement ; sinon préciser `affectations` :
+`[{"classeSource": "/api/classes/1", "admis": "/api/classes/10", "redoublants": "/api/classes/11"}]`.
+
+**Blocages** (la simulation les liste, la clôture les refuse tant qu'il en reste) : année non active, trimestre non fermé, aucune année suivante
+valide, élève sans décision, classe de destination manquante ou ambiguë, élève déjà inscrit dans l'année suivante.
+
+**À la clôture** : chaque inscription passe à `terminee` avec son bilan figé (moyenne annuelle, rang, effectif, décision calculée et finale) ;
+l'année passe à `cloturee` et devient **en lecture seule** (classes, matières de classe, trimestres, notes, inscriptions). L'année suivante peut
+ensuite être activée (`PATCH` `statut: active`).

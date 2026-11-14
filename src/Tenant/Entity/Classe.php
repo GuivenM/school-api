@@ -17,6 +17,7 @@ use App\ApiPlatform\DbExceptionMap;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /** Une classe (ex. « 6e A ») pour une année scolaire donnée, avec son enseignant titulaire. */
 #[ORM\Entity]
@@ -29,8 +30,8 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(uriTemplate: '/classes'),
         new Get(uriTemplate: '/classes/{id}'),
         new Post(uriTemplate: '/classes', security: Acces::ECRITURE),
-        new Patch(uriTemplate: '/classes/{id}', security: Acces::ECRITURE),
-        new Delete(uriTemplate: '/classes/{id}', security: Acces::ECRITURE),
+        new Patch(uriTemplate: '/classes/{id}', security: Acces::ECRITURE.' and object.getAnnee().estModifiable()'),
+        new Delete(uriTemplate: '/classes/{id}', security: Acces::ECRITURE.' and object.getAnnee().estModifiable()'),
     ],
     security: Acces::LECTURE,
     order: ['libelle' => 'ASC'],
@@ -118,5 +119,13 @@ class Classe
     public function setTitulaire(?Enseignant $titulaire): void
     {
         $this->titulaire = $titulaire;
+    }
+
+    #[Assert\Callback]
+    public function validerAnnee(ExecutionContextInterface $context): void
+    {
+        if (null === $this->id && null !== $this->annee && !$this->annee->estModifiable()) {
+            $context->buildViolation('Cette année scolaire est clôturée : plus de nouvelle classe.')->atPath('annee')->addViolation();
+        }
     }
 }

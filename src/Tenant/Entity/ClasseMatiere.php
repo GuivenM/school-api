@@ -18,6 +18,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * Matière enseignée dans une classe, avec son coefficient (par classe, donc par année : modifier un coefficient
@@ -33,8 +34,8 @@ use Symfony\Component\Validator\Constraints as Assert;
         new GetCollection(uriTemplate: '/classe_matieres'),
         new Get(uriTemplate: '/classe_matieres/{id}'),
         new Post(uriTemplate: '/classe_matieres', security: Acces::ECRITURE),
-        new Patch(uriTemplate: '/classe_matieres/{id}', security: Acces::ECRITURE),
-        new Delete(uriTemplate: '/classe_matieres/{id}', security: Acces::ECRITURE),
+        new Patch(uriTemplate: '/classe_matieres/{id}', security: Acces::ECRITURE.' and object.getClasse().getAnnee().estModifiable()'),
+        new Delete(uriTemplate: '/classe_matieres/{id}', security: Acces::ECRITURE.' and object.getClasse().getAnnee().estModifiable()'),
     ],
     security: Acces::LECTURE,
     exceptionToStatus: DbExceptionMap::TO_STATUS,
@@ -107,5 +108,13 @@ class ClasseMatiere
     public function setEnseignant(?Enseignant $enseignant): void
     {
         $this->enseignant = $enseignant;
+    }
+
+    #[Assert\Callback]
+    public function validerAnnee(ExecutionContextInterface $context): void
+    {
+        if (null === $this->id && null !== $this->classe?->getAnnee() && !$this->classe->getAnnee()->estModifiable()) {
+            $context->buildViolation('Cette année scolaire est clôturée : plus de modification possible.')->atPath('classe')->addViolation();
+        }
     }
 }

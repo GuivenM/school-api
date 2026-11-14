@@ -150,6 +150,10 @@ class Periode
     #[Assert\Callback]
     public function validerDates(ExecutionContextInterface $context): void
     {
+        if (null === $this->id && null !== $this->annee && !$this->annee->estModifiable()) {
+            $context->buildViolation('Cette année scolaire est clôturée : plus de nouveau trimestre.')->atPath('annee')->addViolation();
+        }
+
         if (null === $this->dateDebut || null === $this->dateFin) {
             return;
         }

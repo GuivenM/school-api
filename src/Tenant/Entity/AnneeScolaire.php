@@ -116,6 +116,13 @@ class AnneeScolaire
         return $this->clotureeLe;
     }
 
+    /** Appelé uniquement par la clôture d'année (ClotureAnnee). */
+    public function marquerCloturee(): void
+    {
+        $this->statut = StatutAnnee::Cloturee;
+        $this->clotureeLe = new \DateTimeImmutable();
+    }
+
     /** Modifiable via l'API tant que l'année n'est pas clôturée. */
     public function estModifiable(): bool
     {

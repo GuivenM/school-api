@@ -6,8 +6,10 @@ namespace App\Tenant\Calcul;
 
 use App\Tenant\Entity\Classe;
 use App\Tenant\Entity\ClasseMatiere;
+use App\Tenant\Entity\DecisionFinAnnee;
 use App\Tenant\Entity\Inscription;
 use App\Tenant\Entity\Note;
+use App\Tenant\Entity\Parametre;
 use App\Tenant\Entity\Periode;
 use App\Tenant\Entity\ResultatMatiere;
 use App\Tenant\Entity\ResultatPeriode;
@@ -36,6 +38,53 @@ final class CalculMoyennes
         #[Autowire(service: 'doctrine.orm.tenant_entity_manager')]
         private readonly EntityManagerInterface $tenantEntityManager,
     ) {
+    }
+
+    /** Seuil d'admission de l'école (paramètre « seuil_admission », 10 par défaut), identique pour tous les niveaux. */
+    public function seuilAdmission(): float
+    {
+        $valeur = $this->tenantEntityManager->find(Parametre::class, 'seuil_admission')?->getValeur();
+
+        return null !== $valeur && is_numeric(str_replace(',', '.', $valeur)) ? (float) str_replace(',', '.', $valeur) : 10.0;
+    }
+
+    /** Décision proposée d'après la moyenne annuelle ; null = pas de moyenne, décision humaine nécessaire. */
+    public function decisionCalculee(?float $moyenneAnnuelle): ?DecisionFinAnnee
+    {
+        if (null === $moyenneAnnuelle) {
+            return null;
+        }
+
+        return $moyenneAnnuelle >= $this->seuilAdmission() ? DecisionFinAnnee::Admis : DecisionFinAnnee::Redouble;
+    }
+
+    /**
+     * Moyenne et rang annuels de chaque élève d'une classe (moyenne des moyennes de trimestre existantes).
+     *
+     * @return array<int, array{moyenne: float, rang: int, effectif: int}> indexé par id d'inscription ; absent = aucune moyenne
+     */
+    public function moyennesAnnuelles(Classe $classe): array
+    {
+        $parInscription = [];
+        foreach ($this->tenantEntityManager->getRepository(Periode::class)->findBy(['annee' => $classe->getAnnee()]) as $periode) {
+            foreach ($this->resultatsClasse($periode, $classe) as $ligne) {
+                if (null !== $ligne['moyenne']) {
+                    $parInscription[$ligne['inscription']][] = $ligne['moyenne'];
+                }
+            }
+        }
+
+        $annuelles = array_map(static fn (array $m): float => round(array_sum($m) / \count($m), 2), $parInscription);
+        $resultat = [];
+        foreach ($annuelles as $id => $moyenne) {
+            $resultat[$id] = [
+                'moyenne' => $moyenne,
+                'rang' => 1 + \count(array_filter($annuelles, static fn (float $a): bool => $a > $moyenne)),
+                'effectif' => \count($annuelles),
+            ];
+        }
+
+        return $resultat;
     }
 
     public function source(Periode $periode): string

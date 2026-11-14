@@ -1,0 +1,123 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use ApiPlatform\Metadata\IriConverterInterface;
+use App\Tenant\Calcul\ClotureAnnee;
+use App\Tenant\Calcul\ClotureImpossibleException;
+use App\Tenant\Entity\AnneeScolaire;
+use App\Tenant\Entity\Classe;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+
+/**
+ * Clôture d'année. Corps (optionnel pour la simulation) :
+ * {"anneeSuivante": "/api/annees_scolaires/2",
+ *  "affectations": [{"classeSource": "/api/classes/1", "admis": "/api/classes/10", "redoublants": "/api/classes/11"}]}
+ * « affectations » n'est nécessaire que lorsque l'année suivante a plusieurs classes d'un même niveau.
+ */
+final class ClotureAnneeController
+{
+    public function __construct(
+        private readonly ClotureAnnee $cloture,
+        private readonly IriConverterInterface $iriConverter,
+    ) {
+    }
+
+    /** Simulation : ne modifie rien. */
+    #[Route('/api/annees_scolaires/{id}/cloture/apercu', name: 'api_annee_cloture_apercu', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_SECRETARIAT')]
+    public function apercu(AnneeScolaire $annee, Request $request): JsonResponse
+    {
+        try {
+            [$suivante, $affectations] = $this->lireDemande($request);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 400);
+        }
+
+        $plan = $this->cloture->planifier($annee, $suivante, $affectations);
+        unset($plan['actions']);
+
+        return new JsonResponse([
+            'annee' => $annee->getId(),
+            'anneeSuivante' => $suivante?->getId(),
+            'pret' => [] === $plan['blocages'],
+        ] + $plan);
+    }
+
+    /** Exécution (directeur) : irréversible. Tout ou rien. */
+    #[Route('/api/annees_scolaires/{id}/cloturer', name: 'api_annee_cloturer', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_DIRECTEUR')]
+    public function cloturer(AnneeScolaire $annee, Request $request): JsonResponse
+    {
+        try {
+            [$suivante, $affectations] = $this->lireDemande($request);
+            $resume = $this->cloture->cloturer($annee, $suivante, $affectations);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 400);
+        } catch (ClotureImpossibleException $e) {
+            return new JsonResponse(['error' => $e->getMessage(), 'blocages' => $e->blocages], 409);
+        }
+
+        return new JsonResponse([
+            'annee' => $annee->getId(),
+            'statut' => $annee->getStatut()->value,
+            'anneeSuivante' => $suivante?->getId(),
+            'resume' => $resume,
+        ]);
+    }
+
+    /** @return array{0: ?AnneeScolaire, 1: array<int, array<string, ?int>>} */
+    private function lireDemande(Request $request): array
+    {
+        $corps = '' === $request->getContent() ? [] : json_decode($request->getContent(), true);
+        if (!\is_array($corps)) {
+            throw new \InvalidArgumentException('Corps JSON invalide.');
+        }
+
+        $suivante = null;
+        if (isset($corps['anneeSuivante'])) {
+            $suivante = $this->resoudre($corps['anneeSuivante'], AnneeScolaire::class, 'anneeSuivante');
+        }
+
+        $affectations = [];
+        foreach ($corps['affectations'] ?? [] as $ligne) {
+            if (!\is_array($ligne) || !isset($ligne['classeSource'])) {
+                throw new \InvalidArgumentException('Chaque affectation doit contenir « classeSource ».');
+            }
+            $source = $this->resoudre($ligne['classeSource'], Classe::class, 'classeSource');
+            foreach (['admis', 'redoublants'] as $cle) {
+                if (isset($ligne[$cle])) {
+                    $affectations[$source->getId()][$cle] = $this->resoudre($ligne[$cle], Classe::class, $cle)->getId();
+                }
+            }
+        }
+
+        return [$suivante, $affectations];
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $classe
+     *
+     * @return T
+     */
+    private function resoudre(mixed $iri, string $classe, string $champ): object
+    {
+        try {
+            $ressource = \is_string($iri) ? $this->iriConverter->getResourceFromIri($iri) : null;
+        } catch (\Throwable) {
+            $ressource = null;
+        }
+        if (!$ressource instanceof $classe) {
+            throw new \InvalidArgumentException(sprintf('« %s » doit être l\'IRI d\'une ressource existante du bon type.', $champ));
+        }
+
+        return $ressource;
+    }
+}

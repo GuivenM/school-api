@@ -89,6 +89,41 @@ class Inscription
     #[Assert\Length(max: 255)]
     private ?string $provenance = null;
 
+    /** Bilan figé à la clôture de l'année (lecture seule via l'API). */
+    #[ORM\Column(nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?float $moyenneAnnuelle = null;
+
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?int $rangAnnuel = null;
+
+    #[ORM\Column(type: 'smallint', nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?int $effectifAnnuel = null;
+
+    /** Décision calculée (moyenne annuelle ≥ seuil d'admission), enregistrée à la clôture. */
+    #[ORM\Column(length: 20, enumType: DecisionFinAnnee::class, nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?DecisionFinAnnee $decisionAuto = null;
+
+    /** Avant la clôture : décision prise par le conseil de classe (POST /api/inscriptions/{id}/decision). Après : décision finale. */
+    #[ORM\Column(length: 20, enumType: DecisionFinAnnee::class, nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?DecisionFinAnnee $decision = null;
+
+    #[ORM\Column(nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?string $decisionMotif = null;
+
+    #[ORM\Column(length: 180, nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?string $decisionPar = null;
+
+    #[ORM\Column(nullable: true)]
+    #[ApiProperty(writable: false)]
+    private ?\DateTimeImmutable $decisionLe = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -200,6 +235,74 @@ class Inscription
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getMoyenneAnnuelle(): ?float
+    {
+        return $this->moyenneAnnuelle;
+    }
+
+    public function getRangAnnuel(): ?int
+    {
+        return $this->rangAnnuel;
+    }
+
+    public function getEffectifAnnuel(): ?int
+    {
+        return $this->effectifAnnuel;
+    }
+
+    public function getDecisionAuto(): ?DecisionFinAnnee
+    {
+        return $this->decisionAuto;
+    }
+
+    public function getDecision(): ?DecisionFinAnnee
+    {
+        return $this->decision;
+    }
+
+    public function getDecisionMotif(): ?string
+    {
+        return $this->decisionMotif;
+    }
+
+    public function getDecisionPar(): ?string
+    {
+        return $this->decisionPar;
+    }
+
+    public function getDecisionLe(): ?\DateTimeImmutable
+    {
+        return $this->decisionLe;
+    }
+
+    /** Décision du conseil de classe (avant la clôture). */
+    public function definirDecision(DecisionFinAnnee $decision, ?string $motif, string $par): void
+    {
+        $this->decision = $decision;
+        $this->decisionMotif = $motif;
+        $this->decisionPar = $par;
+        $this->decisionLe = new \DateTimeImmutable();
+    }
+
+    public function effacerDecision(): void
+    {
+        $this->decision = null;
+        $this->decisionMotif = null;
+        $this->decisionPar = null;
+        $this->decisionLe = null;
+    }
+
+    /** Fige le bilan de l'année (clôture) : l'inscription est « terminee ». */
+    public function enregistrerBilan(?float $moyenne, ?int $rang, ?int $effectif, ?DecisionFinAnnee $auto, DecisionFinAnnee $finale): void
+    {
+        $this->moyenneAnnuelle = $moyenne;
+        $this->rangAnnuel = $rang;
+        $this->effectifAnnuel = $effectif;
+        $this->decisionAuto = $auto;
+        $this->decision = $finale;
+        $this->statut = StatutInscription::Terminee;
     }
 
     /** @return list<string> */
