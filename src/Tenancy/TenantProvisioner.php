@@ -86,6 +86,14 @@ final class TenantProvisioner
         $this->landlordEntityManager->flush();
     }
 
+    /** Vide la base de l'école (la recrée vide, mêmes droits d'accès) : étape d'une restauration de sauvegarde. */
+    public function reinitialiserBase(Tenant $tenant): void
+    {
+        $this->switcher->clear();
+        $this->landlordConnection->executeStatement(sprintf('DROP DATABASE IF EXISTS `%s`', $tenant->getDbName()));
+        $this->landlordConnection->executeStatement(sprintf('CREATE DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci', $tenant->getDbName()));
+    }
+
     private function seed(string $name): void
     {
         $defaults = [

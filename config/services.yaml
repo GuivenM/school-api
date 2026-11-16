@@ -49,6 +49,30 @@ services:
             $dbPrefix: '%app.tenant.db_prefix%'
             $userHost: '%env(TENANT_DB_USER_HOST)%'
 
+    # --- Sauvegardes ---
+    App\Backup\BackupCrypto:
+        arguments:
+            $cle: '%env(BACKUP_ENCRYPTION_KEY)%'
+
+    App\Backup\BackupStorages:
+        arguments:
+            $destinations: '%env(BACKUP_DESTINATIONS)%'
+            $dossierLocal: '%env(BACKUP_LOCAL_DIR)%'
+            $racineProjet: '%kernel.project_dir%'
+            $s3:
+                endpoint: '%env(BACKUP_S3_ENDPOINT)%'
+                region: '%env(BACKUP_S3_REGION)%'
+                bucket: '%env(BACKUP_S3_BUCKET)%'
+                key: '%env(BACKUP_S3_KEY)%'
+                secret: '%env(BACKUP_S3_SECRET)%'
+                prefix: '%env(BACKUP_S3_PREFIX)%'
+                pathStyle: '%env(bool:BACKUP_S3_PATH_STYLE)%'
+
+    App\Backup\MysqlTools:
+        arguments:
+            $binaireDump: '%env(BACKUP_MYSQLDUMP_BINARY)%'
+            $binaireMysql: '%env(BACKUP_MYSQL_BINARY)%'
+
 when@test:
     parameters:
         # Bases d'école de test séparées de celles de dev

@@ -36,6 +36,10 @@ final class ClotureAnneeApiTest extends WebTestCase
 
     protected function setUp(): void
     {
+        // Ces tests ne lancent pas mysqldump : la sauvegarde automatique à la clôture est désactivée ici.
+        putenv('BACKUP_ON_CLOSURE=0');
+        $_ENV['BACKUP_ON_CLOSURE'] = $_SERVER['BACKUP_ON_CLOSURE'] = '0';
+
         $this->client = static::createClient();
         $this->client->disableReboot();
 

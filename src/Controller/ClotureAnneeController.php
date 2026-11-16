@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use ApiPlatform\Metadata\IriConverterInterface;
+use App\Backup\SauvegardeService;
+use App\Entity\TypeSauvegarde;
 use App\Tenant\Calcul\ClotureAnnee;
 use App\Tenant\Calcul\ClotureImpossibleException;
 use App\Tenant\Entity\AnneeScolaire;
 use App\Tenant\Entity\Classe;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -25,6 +29,10 @@ final class ClotureAnneeController
     public function __construct(
         private readonly ClotureAnnee $cloture,
         private readonly IriConverterInterface $iriConverter,
+        private readonly SauvegardeService $sauvegardes,
+        private readonly LoggerInterface $logger,
+        #[Autowire('%env(bool:BACKUP_ON_CLOSURE)%')]
+        private readonly bool $sauvegarderALaCloture,
     ) {
     }
 
@@ -49,13 +57,33 @@ final class ClotureAnneeController
         ] + $plan);
     }
 
-    /** Exécution (directeur) : irréversible. Tout ou rien. */
+    /**
+     * Exécution (directeur) : irréversible. Tout ou rien. Avec BACKUP_ON_CLOSURE=1, la base est sauvegardée AVANT (si cela échoue,
+     * la clôture est refusée : c'est le point de retour) puis archivée APRÈS la clôture.
+     */
     #[Route('/api/annees_scolaires/{id}/cloturer', name: 'api_annee_cloturer', methods: ['POST'], requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_DIRECTEUR')]
     public function cloturer(AnneeScolaire $annee, Request $request): JsonResponse
     {
         try {
             [$suivante, $affectations] = $this->lireDemande($request);
+
+            // On vérifie d'abord qu'il n'y a aucun blocage, pour ne pas sauvegarder inutilement à chaque tentative refusée.
+            $plan = $this->cloture->planifier($annee, $suivante, $affectations);
+            if ([] !== $plan['blocages']) {
+                throw new ClotureImpossibleException($plan['blocages']);
+            }
+
+            if ($this->sauvegarderALaCloture) {
+                try {
+                    $this->sauvegardes->sauvegarderEcoleCourante(TypeSauvegarde::AvantCloture, 'Avant clôture de '.$annee->getLibelle(), $annee->getLibelle());
+                } catch (\Throwable $e) {
+                    $this->logger->error('Sauvegarde préalable à la clôture échouée', ['exception' => $e]);
+
+                    return new JsonResponse(['error' => 'Clôture annulée : la sauvegarde préalable a échoué. Contactez l\'administrateur de la plateforme.'], 503);
+                }
+            }
+
             $resume = $this->cloture->cloturer($annee, $suivante, $affectations);
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], 400);
@@ -63,11 +91,23 @@ final class ClotureAnneeController
             return new JsonResponse(['error' => $e->getMessage(), 'blocages' => $e->blocages], 409);
         }
 
+        $archive = null;
+        if ($this->sauvegarderALaCloture) {
+            try {
+                $sauvegarde = $this->sauvegardes->sauvegarderEcoleCourante(TypeSauvegarde::ArchiveAnnee, 'Archive de l\'année '.$annee->getLibelle(), $annee->getLibelle());
+                $archive = ['id' => $sauvegarde->getId(), 'destinations' => $sauvegarde->getDestinations()];
+            } catch (\Throwable $e) {
+                $this->logger->error('Archive de fin d\'année échouée', ['exception' => $e]);
+                $archive = ['erreur' => 'L\'archive n\'a pas pu être créée : l\'administrateur de la plateforme doit relancer une sauvegarde.'];
+            }
+        }
+
         return new JsonResponse([
             'annee' => $annee->getId(),
             'statut' => $annee->getStatut()->value,
             'anneeSuivante' => $suivante?->getId(),
             'resume' => $resume,
+            'archive' => $archive,
         ]);
     }
 
