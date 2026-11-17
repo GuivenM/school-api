@@ -12,6 +12,7 @@
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.7",
+        "dompdf/dompdf": "^3.1",
         "league/flysystem": "^3.36",
         "league/flysystem-aws-s3-v3": "^3.35",
         "lexik/jwt-authentication-bundle": "^3.2",

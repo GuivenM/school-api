@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\ApiPlatform\Acces;
+use App\Tenant\Calcul\BulletinService;
 use App\Tenant\Calcul\CalculMoyennes;
 use App\Tenant\Entity\Classe;
 use App\Tenant\Entity\Inscription;
@@ -22,6 +23,7 @@ final class ResultatsController
 {
     public function __construct(
         private readonly CalculMoyennes $calcul,
+        private readonly BulletinService $bulletins,
         #[Autowire(service: 'doctrine.orm.tenant_entity_manager')]
         private readonly EntityManagerInterface $tenantEntityManager,
     ) {
@@ -54,6 +56,6 @@ final class ResultatsController
     #[IsGranted(new Expression(Acces::PERSONNEL))]
     public function bulletin(Inscription $inscription): JsonResponse
     {
-        return new JsonResponse($this->calcul->bulletin($inscription));
+        return new JsonResponse($this->bulletins->construire($inscription));
     }
 }

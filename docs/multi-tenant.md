@@ -143,7 +143,7 @@ change ensuite) et verrouille la saisie (notes, évaluations, trimestre). `rouvr
 (`"source": "snapshot"`).
 
 Limites actuelles : tout le personnel (y compris un enseignant) peut LIRE les notes de toutes les classes ; la restriction de lecture
-aux classes de l'enseignant viendra avec les routes dédiées. Les bulletins PDF et les appréciations arrivent au lot 5B.
+aux classes de l'enseignant viendra avec les routes dédiées. Les appréciations et les bulletins PDF sont décrits plus bas.
 
 ## Clôture d'année et passage à la suivante
 Même **seuil d'admission pour tous les niveaux** : paramètre `seuil_admission` de l'école (10 par défaut).
@@ -174,3 +174,25 @@ valide, élève sans décision, classe de destination manquante ou ambiguë, él
 **À la clôture** : chaque inscription passe à `terminee` avec son bilan figé (moyenne annuelle, rang, effectif, décision calculée et finale) ;
 l'année passe à `cloturee` et devient **en lecture seule** (classes, matières de classe, trimestres, notes, inscriptions). L'année suivante peut
 ensuite être activée (`PATCH` `statut: active`).
+
+## Appréciations et bulletins PDF
+**Prérequis** : `composer require dompdf/dompdf` (génération PDF sans dépendance système). Les fichiers temporaires vont dans `var/dompdf/`.
+Le nom de l'école imprimé sur les bulletins est le paramètre `nom_ecole` (renseigné à la création de l'école).
+
+**Appréciations** (imprimées sur le bulletin) : `PUT /api/inscriptions/{id}/appreciations/{periodeId}`
+`{"generale": "texte" | null, "matieres": {"<id de matière>": "texte" | null}}` ; lecture : `GET` sur la même URL.
+- `generale` (conseil de classe) : secrétariat/directeur ou **titulaire** de la classe ;
+- `matieres` : secrétariat/directeur ou **enseignant de cette matière dans la classe** ;
+- 500 caractères maximum ; `null` ou texte vide supprime ; tout ou rien ; modifiables **tant que le trimestre est ouvert**.
+
+**Bulletins PDF** (lecture : personnel de l'école)
+| Document | URL |
+|---|---|
+| Bulletin d'un trimestre | `GET /api/inscriptions/{id}/bulletin.pdf?periode=<id>` |
+| Bulletin annuel (3 trimestres, moyenne et rang annuels, décision de fin d'année) | `GET /api/inscriptions/{id}/bulletin.pdf` |
+| Toute une classe, un élève par page | `GET /api/classes/{id}/bulletins.pdf?periode=<id>` (sans `periode` : bulletins annuels) |
+
+Un trimestre non fermé ou une année non terminée produit un bulletin marqué **PROVISOIRE**. `GET /api/inscriptions/{id}/bulletin` (JSON)
+contient désormais aussi les appréciations, l'école, la classe et la décision. Les gabarits sont dans `templates/bulletin/`
+(`trimestre.html.php`, `annuel.html.php`, `bulletin.css`) : la mise en page se modifie sans toucher au code.
+Les tuteurs et élèves n'ont pas encore accès à leurs bulletins (espace parents/élèves à venir).
